@@ -7,9 +7,9 @@ include(ExternalProject)
 # Set install directory
 set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/dist CACHE PATH ${CMAKE_SOURCE_DIR}/dist FORCE)
 set(CMAKE_BUILD_TYPE "Debug")
-if(WIN32)
+if (WIN32)
     set(CMAKE_CONFIGURATION_TYPES "Debug" CACHE STRING "Debug" FORCE)
-endif()
+endif ()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
@@ -24,7 +24,7 @@ set(EXEC assignment2)
 
 file(GLOB SRC src/*.cpp)
 
-add_executable(${EXEC} ${SRC})
+add_executable(${EXEC} ${SRC} src/Cube.cpp src/Cube.h src/RacketFernando.cpp src/RacketFernando.h src/ArmWithRacketFernando.cpp src/ArmWithRacketFernando.h)
 
 target_link_libraries(${EXEC} OpenGL::GL glew_s glfw glm)
 
@@ -34,3 +34,9 @@ list(APPEND BIN ${EXEC})
 # install files to install location
 install(TARGETS ${BIN} DESTINATION ${CMAKE_INSTALL_PREFIX})
 
+# copy assets
+add_custom_target(copy_assets
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/assets
+        COMMENT "Copying assets to ${CMAKE_CURRENT_BINARY_DIR}/assets")
+
+add_dependencies(${EXEC} copy_assets)

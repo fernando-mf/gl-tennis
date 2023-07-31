@@ -13,6 +13,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "Cube.h"
+#include "ArmWithRacketFernando.h"
+
 using namespace glm;
 using namespace std;
 
@@ -55,8 +58,8 @@ int compileShader(GLenum type, const char *shaderPath) {
 
 int compileAndLinkShaders() {
     int shaders[] = {
-            compileShader(GL_VERTEX_SHADER, "./vertex_shader.glsl"),
-            compileShader(GL_FRAGMENT_SHADER, "./fragment_shader.glsl"),
+            compileShader(GL_VERTEX_SHADER, "./assets/shaders/vertex_shader.glsl"),
+            compileShader(GL_FRAGMENT_SHADER, "./assets/shaders/fragment_shader.glsl"),
     };
 
     int shaderProgram = glCreateProgram();
@@ -86,88 +89,10 @@ int compileAndLinkShaders() {
     return shaderProgram;
 }
 
-const vec3 COLOR_RED =vec3( 1.0f,0.0f, 0.0f);
+const vec3 COLOR_RED = vec3(1.0f, 0.0f, 0.0f);
 const vec3 COLOR_BLUE = vec3(0.0f, 0.0f, 1.0f);
 const vec3 COLOR_GREEN = vec3(0.0f, 1.0f, 0.0f);
 const vec3 COLOR_GREEN_FLOOR = vec3(0.11f, 0.73f, 0.04f);
-const vec3 COLOR_ARM = vec3(0.75f, 0.63f, 0.46f);
-const vec3 COLOR_RACKET_BODY = vec3(0.44f, 0.0f, 0.008f);
-const vec3 COLOR_RACKET_BODY_ALT = vec3(0.61f, 0.61f, 0.61f);
-const vec3 COLOR_RACKET_STRINGS = vec3(0.31f, 0.68f, 0.027f);
-
-class Cube {
-public:
-    GLuint vbo;
-
-    Cube(vec3 color) {
-        vec3 vertexArray[] = {  // position,                  color
-                vec3(-0.5f, -0.5f, -0.5f), color, //left
-                vec3(-0.5f, -0.5f, 0.5f), color,
-                vec3(-0.5f, 0.5f, 0.5f), color,
-
-                vec3(-0.5f, -0.5f, -0.5f), color,
-                vec3(-0.5f, 0.5f, 0.5f), color,
-                vec3(-0.5f, 0.5f, -0.5f), color,
-
-                vec3(0.5f, 0.5f, -0.5f), color, // far
-                vec3(-0.5f, -0.5f, -0.5f), color,
-                vec3(-0.5f, 0.5f, -0.5f), color,
-
-                vec3(0.5f, 0.5f, -0.5f), color,
-                vec3(0.5f, -0.5f, -0.5f), color,
-                vec3(-0.5f, -0.5f, -0.5f), color,
-
-                vec3(0.5f, -0.5f, 0.5f), color, // bottom
-                vec3(-0.5f, -0.5f, -0.5f), color,
-                vec3(0.5f, -0.5f, -0.5f), color,
-
-                vec3(0.5f, -0.5f, 0.5f), color,
-                vec3(-0.5f, -0.5f, 0.5f), color,
-                vec3(-0.5f, -0.5f, -0.5f), color,
-
-                vec3(-0.5f, 0.5f, 0.5f), color, // near
-                vec3(-0.5f, -0.5f, 0.5f), color,
-                vec3(0.5f, -0.5f, 0.5f), color,
-
-                vec3(0.5f, 0.5f, 0.5f), color,
-                vec3(-0.5f, 0.5f, 0.5f), color,
-                vec3(0.5f, -0.5f, 0.5f), color,
-
-                vec3(0.5f, 0.5f, 0.5f), color, // right
-                vec3(0.5f, -0.5f, -0.5f), color,
-                vec3(0.5f, 0.5f, -0.5f), color,
-
-                vec3(0.5f, -0.5f, -0.5f), color,
-                vec3(0.5f, 0.5f, 0.5f), color,
-                vec3(0.5f, -0.5f, 0.5f), color,
-
-                vec3(0.5f, 0.5f, 0.5f), color, // top
-                vec3(0.5f, 0.5f, -0.5f), color,
-                vec3(-0.5f, 0.5f, -0.5f), color,
-
-                vec3(0.5f, 0.5f, 0.5f), color,
-                vec3(-0.5f, 0.5f, -0.5f), color,
-                vec3(-0.5f, 0.5f, 0.5f), color
-        };
-
-        GLuint vao;
-        glGenVertexArrays(1, &vao);
-        glBindVertexArray(vao);
-
-        GLuint vbo;
-        glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArray), vertexArray, GL_STATIC_DRAW);
-
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(vec3), (void *) 0);
-
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(vec3), (void *) sizeof(vec3));
-
-        this->vbo = vao;
-    }
-};
 
 float randomBetween(float min, float max) {
     return min + rand() / (RAND_MAX / (max - min));
@@ -193,7 +118,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
     glfwMakeContextCurrent(window);
-//    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // initialize GLEW
     glewExperimental = true;
@@ -237,18 +162,12 @@ int main(int argc, char *argv[]) {
     double lastMousePosX, lastMousePosY;
     glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
 
-    // instantiate cubes
-    int groundVao = Cube(COLOR_GREEN_FLOOR).vbo;
-    int xAxisVao = Cube(COLOR_RED).vbo;
-    int yAxisVao = Cube(COLOR_GREEN).vbo;
-    int zAxisVao = Cube(COLOR_BLUE).vbo;
-    int armVao = Cube(COLOR_ARM).vbo;
-    int racketBodyVao = Cube(COLOR_RACKET_BODY).vbo;
-    int racketStringsVao = Cube(COLOR_RACKET_STRINGS).vbo;
-    int racketBodyAltVao = Cube(COLOR_RACKET_BODY_ALT).vbo;
-
-    float armAngle = 0;
-    float rotation = 0;
+    // instantiate models
+    Cube ground = Cube(COLOR_GREEN_FLOOR);
+    Cube xAxis = Cube(COLOR_RED);
+    Cube yAxis = Cube(COLOR_GREEN);
+    Cube zAxis = Cube(COLOR_BLUE);
+    ArmWithRacketFernando armWithRacketFernando = ArmWithRacketFernando(worldMatrixLocation);
 
     const float worldSize = 100; // grid size
     vec3 modelLocation(2.0f, 1.0f, 2.0f);
@@ -276,8 +195,6 @@ int main(int argc, char *argv[]) {
                                  rotate(mat4(1.0f), glm::radians(worldXAxisRotation), vec3(1.0f, 0.0f, 0.0f));
 
         // draw ground
-        glBindVertexArray(groundVao);
-
         for (int i = 0; i < worldSize + 1; i++) {
             mat4 groundWM = translate(mat4(1.0f), vec3(worldSize / 2 - i, 0.0f, 0.0f)) *
                             scale(mat4(1.0f), vec3(0.02f, 0.02f, worldSize));
@@ -285,7 +202,7 @@ int main(int argc, char *argv[]) {
             groundWM = globalWorldMatrix * groundWM;
 
             glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &groundWM[0][0]);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
+            ground.draw();
         }
         for (int i = 0; i < worldSize + 1; i++) {
             mat4 groundWM = translate(mat4(1.0f), vec3(0.0f, 0.0f, worldSize / 2 - i)) *
@@ -294,7 +211,7 @@ int main(int argc, char *argv[]) {
             groundWM = globalWorldMatrix * groundWM;
 
             glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &groundWM[0][0]);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
+            ground.draw();
         }
 
         // draw axes
@@ -302,151 +219,42 @@ int main(int argc, char *argv[]) {
         const float axisLength = 5.0f;
 
         // draw x-axis :: red
-        glBindVertexArray(xAxisVao);
         mat4 xAxisWM = translate(mat4(1.0f), vec3(axisLength / 2, axisSize / 2, axisSize / 2)) *
                        scale(mat4(1.0f), vec3(axisLength, axisSize, axisSize));
         xAxisWM = globalWorldMatrix * xAxisWM;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &xAxisWM[0][0]);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        xAxis.draw();
 
         // draw y-axis :: green
-        glBindVertexArray(yAxisVao);
         mat4 yAxisWM = translate(mat4(1.0f), vec3(axisSize / 2, axisLength / 2, axisSize / 2)) *
                        scale(mat4(1.0f), vec3(axisSize, axisLength, axisSize));
         yAxisWM = globalWorldMatrix * yAxisWM;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &yAxisWM[0][0]);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        yAxis.draw();
 
         // draw z-axis :: blue
-        glBindVertexArray(zAxisVao);
         mat4 zAxisWM = translate(mat4(1.0f), vec3(axisSize / 2, axisSize / 2, axisLength / 2)) *
                        scale(mat4(1.0f), vec3(axisSize, axisSize, axisLength));
         zAxisWM = globalWorldMatrix * zAxisWM;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &zAxisWM[0][0]);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        zAxis.draw();
 
         //
-        // draw hand racket model using hierarchical modeling
+        // Fernando - arm with racket
         //
+        armWithRacketFernando.update(globalWorldMatrix *
+                                     translate(mat4(1.0f), modelLocation) *                                                             // translation with keys A | D | S | W
+                                     rotate(mat4(1.0f), radians(modelYAxisRotation), vec3(0.0f, 1.0f, 0.0f)) * // rotation with keys a | d
+                                     rotate(mat4(1.0f), radians(modelXAxisRotation), vec3(1.0f, 0.0f, 0.0f)) * // rotation with keys s | w
+                                     scale(mat4(1.0f),modelScale)                                                                       // scaling with keys u | j
+        );
+        armWithRacketFernando.animate(lastFrameTime, dt);
+        armWithRacketFernando.draw(modelRenderingMode);
 
-        // draw arm
-        glBindVertexArray(armVao);
-
-        const float armSize = 0.5f;
-        const float armLength = 4.0f;
-        armAngle += 35 * cos(lastFrameTime - 90) * dt;
-        rotation += 80 * dt;
-
-        // lower arm
-        mat4 partMatrix = translate(mat4(1.0f), vec3(0.0f, armLength / 2, 0.0f)) *
-                          scale(mat4(1.0f), vec3(armSize, armLength, armSize));
-        mat4 groupMatrix = translate(mat4(1.0f), modelLocation) *
-                           rotate(mat4(1.0f), radians(modelYAxisRotation), vec3(0.0f, 1.0f, 0.0f)) *
-                           rotate(mat4(1.0f), radians(modelXAxisRotation), vec3(1.0f, 0.0f, 0.0f)) *
-                           rotate(mat4(1.0f), radians(-50.0f), vec3(0.0f, 0.0f, 1.0f)) *
-                           scale(mat4(1.0f), modelScale);
-
-        groupMatrix = globalWorldMatrix * groupMatrix;
-        mat4 worldMatrix = groupMatrix * partMatrix;
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-        glDrawArrays(modelRenderingMode, 0, 36);
-
-        // upper arm
-        partMatrix = translate(mat4(1.0f), vec3(0.0f, armLength / 2, 0.0f)) *
-                     scale(mat4(1.0f), vec3(armSize, armLength, armSize));
-        groupMatrix = groupMatrix *
-                      translate(mat4(1.0f), vec3(0.0f, armLength, 0.0f)) *
-                      rotate(mat4(1.0f), radians(armAngle), vec3(0.0f, 0.0f, 1.0f));
-
-        worldMatrix = groupMatrix * partMatrix;
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-        glDrawArrays(modelRenderingMode, 0, 36);
-
-        // tennis racket
-        // handle
-        glBindVertexArray(racketBodyVao);
-
-        const float racketSize = 0.3f;
-        const float racketHandleLength = 3.0f;
-
-        partMatrix = translate(mat4(1.0f), vec3(0.0f, racketHandleLength / 2, 0.0f)) *
-                     scale(mat4(1.0f), vec3(racketSize, racketHandleLength, racketSize));
-        groupMatrix = groupMatrix *
-                      translate(mat4(1.0f), vec3(0.0f, armLength, 0.0f));
-
-        worldMatrix = groupMatrix * partMatrix;
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-        glDrawArrays(modelRenderingMode, 0, 36);
-
-        // racket rim
-        const float racketRimWidth = 2.2f;
-        const float racketRimHeight = 3.0f;
-
-        // bottom
-        glBindVertexArray(racketBodyAltVao);
-
-        partMatrix = translate(mat4(1.0f), vec3(0.0f, racketSize / 2, 0.0f)) *
-                     scale(mat4(1.0f), vec3(racketRimWidth, racketSize, racketSize));
-        groupMatrix = groupMatrix *
-                      translate(mat4(1.0f), vec3(0.0f, racketHandleLength, 0.0f));
-
-        worldMatrix = groupMatrix * partMatrix;
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-        glDrawArrays(modelRenderingMode, 0, 36);
-
-        // left
-        partMatrix = translate(mat4(1.0f), vec3(-racketRimWidth / 2, racketRimHeight / 2, 0.0f)) *
-                     scale(mat4(1.0f), vec3(racketSize, racketRimHeight, racketSize));
-        groupMatrix = groupMatrix *
-                      translate(mat4(1.0f), vec3(0.0f, racketSize, 0.0f));
-
-        worldMatrix = groupMatrix * partMatrix;
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-        glDrawArrays(modelRenderingMode, 0, 36);
-
-        // right
-        partMatrix = translate(mat4(1.0f), vec3(racketRimWidth / 2, racketRimHeight / 2, 0.0f)) *
-                     scale(mat4(1.0f), vec3(racketSize, racketRimHeight, racketSize));
-
-        worldMatrix = groupMatrix * partMatrix;
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-        glDrawArrays(modelRenderingMode, 0, 36);
-
-        // top
-        partMatrix = translate(mat4(1.0f), vec3(0.0f, racketRimHeight, 0.0f)) *
-                     scale(mat4(1.0f), vec3(racketRimWidth, racketSize, racketSize));
-
-        worldMatrix = groupMatrix * partMatrix;
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-        glDrawArrays(modelRenderingMode, 0, 36);
-
-        // racket strings
-        glBindVertexArray(racketStringsVao);
-
-        const float verticalStringCount = racketRimWidth / 10;
-        const float horizontalStringCount = racketRimHeight / 10;
-        const float racketStringSize = 0.05f;
-
-        for (int i = 0; i <= 10; i++) {
-            partMatrix =
-                    translate(mat4(1.0f),
-                              vec3(-(racketRimWidth / 2) + i * verticalStringCount, racketRimHeight / 2, 0.0f)) *
-                    scale(mat4(1.0f), vec3(racketStringSize, racketRimHeight, racketStringSize));
-
-            worldMatrix = groupMatrix * partMatrix;
-            glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-            glDrawArrays(modelRenderingMode, 0, 36);
-        }
-        for (int i = 0; i <= 10; i++) {
-            partMatrix =
-                    translate(mat4(1.0f),
-                              vec3(0.0f, i * horizontalStringCount, 0.0f)) *
-                    scale(mat4(1.0f), vec3(racketRimWidth, racketStringSize, racketStringSize));
-
-            worldMatrix = groupMatrix * partMatrix;
-            glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-            glDrawArrays(modelRenderingMode, 0, 36);
-        }
+        //
+        // <name> - arm with racket
+        //
+        // TODO: add your code here
 
         // end frame
         glfwSwapBuffers(window);
@@ -496,16 +304,16 @@ int main(int argc, char *argv[]) {
         //
         float worldRotationSpeed = 10.0f;
         if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-            worldYAxisRotation += worldRotationSpeed * dt;                                      // rotate left 5deg
+            worldYAxisRotation += worldRotationSpeed * dt;               // rotate left 5deg
         }
         if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-            worldYAxisRotation -= worldRotationSpeed * dt;                                      // rotate right 5deg
+            worldYAxisRotation -= worldRotationSpeed * dt;               // rotate right 5deg
         }
         if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-            worldXAxisRotation -= worldRotationSpeed * dt;                                      // rotate up 5deg
+            worldXAxisRotation -= worldRotationSpeed * dt;               // rotate up 5deg
         }
         if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-            worldXAxisRotation += worldRotationSpeed * dt;                                      // rotate down 5deg
+            worldXAxisRotation += worldRotationSpeed * dt;               // rotate down 5deg
         }
 
         //
