@@ -54,25 +54,46 @@ void RacketFernando::draw(GLuint renderingMode) {
     const float racketRimWidth = 2.2f;
     const float racketRimHeight = 3.0f;
 
-    // bottom
-    partMatrix = translate(mat4(1.0f), vec3(0.0f, racketSize / 2, 0.0f)) *
-                 scale(mat4(1.0f), vec3(racketRimWidth, racketSize, racketSize));
+    // calculate desired width based on inclination angle
+    const float racketRimWidthBottom = (racketRimWidth / 2) / cos(radians(50.0f));
+
+    // bottom - left
     groupMatrix = groupMatrix *
                   translate(mat4(1.0f), vec3(0.0f, racketHandleLength, 0.0f));
 
+    partMatrix = rotate(mat4(1.0f), radians(-45.0f), vec3(0.0f, 0.0f, 1.0f)) *
+                 translate(mat4(1.0f), vec3(-racketRimWidthBottom / 2, racketSize / 2, 0.0f)) *
+                 scale(mat4(1.0f), vec3(racketRimWidthBottom, racketSize, racketSize));
+
     worldMatrix = groupMatrix * partMatrix;
     colorShader.setWorldMatrix(worldMatrix);
     racketBodyAlt.draw(renderingMode);
+
+    // bottom - right
+    partMatrix = rotate(mat4(1.0f), radians(45.0f), vec3(0.0f, 0.0f, 1.0f)) *
+                 translate(mat4(1.0f), vec3(racketRimWidthBottom / 2, racketSize / 2, 0.0f)) *
+                 scale(mat4(1.0f), vec3(racketRimWidthBottom, racketSize, racketSize));
+    worldMatrix = groupMatrix * partMatrix;
+    colorShader.setWorldMatrix(worldMatrix);
+    racketBodyAlt.draw(renderingMode);
+
+    // bottom - straight
+    partMatrix = translate(mat4(1.0f), vec3(0.0f, 1.0f, 0.0f)) *
+                 scale(mat4(1.0f), vec3(racketRimWidthBottom - 0.5f, racketSize, racketSize));
+    worldMatrix = groupMatrix * partMatrix;
+    colorShader.setWorldMatrix(worldMatrix);
+    racketBody.draw(renderingMode);
 
     // left
+    groupMatrix = groupMatrix *
+                  translate(mat4(1.0f), vec3(0.0f, 1.2f, 0.0f));
+
     partMatrix = translate(mat4(1.0f), vec3(-racketRimWidth / 2, racketRimHeight / 2, 0.0f)) *
                  scale(mat4(1.0f), vec3(racketSize, racketRimHeight, racketSize));
-    groupMatrix = groupMatrix *
-                  translate(mat4(1.0f), vec3(0.0f, racketSize, 0.0f));
 
     worldMatrix = groupMatrix * partMatrix;
     colorShader.setWorldMatrix(worldMatrix);
-    racketBodyAlt.draw(renderingMode);
+    racketBody.draw(renderingMode);
 
     // right
     partMatrix = translate(mat4(1.0f), vec3(racketRimWidth / 2, racketRimHeight / 2, 0.0f)) *
@@ -80,12 +101,47 @@ void RacketFernando::draw(GLuint renderingMode) {
 
     worldMatrix = groupMatrix * partMatrix;
     colorShader.setWorldMatrix(worldMatrix);
+    racketBody.draw(renderingMode);
+
+    // top left base
+    partMatrix = translate(mat4(1.0f), vec3(-racketRimWidth / 2, racketRimHeight - 0.05f, 0.0f)) *
+                 rotate(mat4(1.0f), radians(45.0f), vec3(0.0f, 0.0f, 1.0f)) *
+                 translate(mat4(1.0f), vec3((racketRimWidth / 4) / 2, 0.0f, 0.0f)) *
+                 scale(mat4(1.0f), vec3(racketRimWidth / 4, racketSize, racketSize));
+    worldMatrix = groupMatrix * partMatrix;
+    colorShader.setWorldMatrix(worldMatrix);
     racketBodyAlt.draw(renderingMode);
 
-    // top
-    partMatrix = translate(mat4(1.0f), vec3(0.0f, racketRimHeight, 0.0f)) *
-                 scale(mat4(1.0f), vec3(racketRimWidth, racketSize, racketSize));
+    // top left base 2
+    partMatrix = translate(mat4(1.0f), vec3(-racketRimWidth / 2 + 0.3f, racketRimHeight + 0.3f, 0.0f)) *
+                 rotate(mat4(1.0f), radians(25.0f), vec3(0.0f, 0.0f, 1.0f)) *
+                 translate(mat4(1.0f), vec3((racketRimWidth / 4) / 2, 0.0f, 0.0f)) *
+                 scale(mat4(1.0f), vec3(racketRimWidth / 4, racketSize, racketSize));
+    worldMatrix = groupMatrix * partMatrix;
+    colorShader.setWorldMatrix(worldMatrix);
+    racketBody.draw(renderingMode);
 
+    // top
+    partMatrix = translate(mat4(1.0f), vec3(0.0f, racketRimHeight + 0.5f, 0.0f)) *
+                 scale(mat4(1.0f), vec3(racketRimWidth / 3.5, racketSize, racketSize));
+    worldMatrix = groupMatrix * partMatrix;
+    colorShader.setWorldMatrix(worldMatrix);
+    racketBodyAlt.draw(renderingMode);
+
+    // top right base 2
+    partMatrix = translate(mat4(1.0f), vec3(racketRimWidth / 2 - 0.3f, racketRimHeight + 0.3f, 0.0f)) *
+                 rotate(mat4(1.0f), radians(155.0f), vec3(0.0f, 0.0f, 1.0f)) *
+                 translate(mat4(1.0f), vec3((racketRimWidth / 4) / 2, 0.0f, 0.0f)) *
+                 scale(mat4(1.0f), vec3(racketRimWidth / 4, racketSize, racketSize));
+    worldMatrix = groupMatrix * partMatrix;
+    colorShader.setWorldMatrix(worldMatrix);
+    racketBody.draw(renderingMode);
+
+    // top right base
+    partMatrix = translate(mat4(1.0f), vec3(racketRimWidth / 2, racketRimHeight - 0.05f, 0.0f)) *
+                 rotate(mat4(1.0f), radians(135.0f), vec3(0.0f, 0.0f, 1.0f)) *
+                 translate(mat4(1.0f), vec3((racketRimWidth / 4) / 2, 0.0f, 0.0f)) *
+                 scale(mat4(1.0f), vec3(racketRimWidth / 4, racketSize, racketSize));
     worldMatrix = groupMatrix * partMatrix;
     colorShader.setWorldMatrix(worldMatrix);
     racketBodyAlt.draw(renderingMode);
@@ -96,10 +152,12 @@ void RacketFernando::draw(GLuint renderingMode) {
     const float racketStringSize = 0.05f;
 
     for (int i = 0; i <= 10; i++) {
+        float height = i > 2 && i < 8 ? racketRimHeight + 0.7f : racketRimHeight;
+
         partMatrix =
                 translate(mat4(1.0f),
                           vec3(-(racketRimWidth / 2) + i * verticalStringCount, racketRimHeight / 2, 0.0f)) *
-                scale(mat4(1.0f), vec3(racketStringSize, racketRimHeight, racketStringSize));
+                scale(mat4(1.0f), vec3(racketStringSize, height, racketStringSize));
 
         worldMatrix = groupMatrix * partMatrix;
         colorShader.setWorldMatrix(worldMatrix);
@@ -183,7 +241,19 @@ void ArmWithRacketFernando::draw(GLuint renderingMode) {
     colorShader.setWorldMatrix(worldMatrix);
     arm.draw(renderingMode);
 
+    float handSize = 1.0f;
+
+    // hand
+    partMatrix = translate(mat4(1.0f), vec3(0.0f, handSize / 2, 0.0f)) *
+                 scale(mat4(1.0f), vec3(handSize, handSize, handSize));
+    groupMatrix = groupMatrix *
+                  translate(mat4(1.0f), vec3(0.0f, armLength, 0.0f));
+    worldMatrix = groupMatrix * partMatrix;
+    colorShader.setWorldMatrix(worldMatrix);
+    arm.draw(renderingMode);
+
+
     // draw racket
-    racket.update(groupMatrix * translate(mat4(1.0f), vec3(0.0f, armLength, 0.0f)));
+    racket.update(groupMatrix * translate(mat4(1.0f), vec3(0.0f, handSize, 0.0f)));
     racket.draw(renderingMode);
 }
