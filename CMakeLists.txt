@@ -24,7 +24,7 @@ set(EXEC assignment2)
 
 file(GLOB SRC src/*.cpp)
 
-add_executable(${EXEC} ${SRC} src/Cube.cpp src/Cube.h src/RacketFernando.cpp src/RacketFernando.h src/ArmWithRacketFernando.cpp src/ArmWithRacketFernando.h)
+add_executable(${EXEC} ${SRC} src/Cube.cpp src/Cube.h src/RacketFernando.cpp src/RacketFernando.h src/ArmWithRacketFernando.cpp src/ArmWithRacketFernando.h src/TexturedColorVertex.cpp src/TexturedColorVertex.h src/ShaderProgram.cpp src/ShaderProgram.h)
 
 target_link_libraries(${EXEC} OpenGL::GL glew_s glfw glm)
 
