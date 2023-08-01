@@ -8,6 +8,8 @@
 
 using namespace std;
 
+ShaderProgram::ShaderProgram() {}
+
 ShaderProgram::ShaderProgram(const char *vertexShaderPath, const char *fragmentShaderPath) {
     GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderPath);
     GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderPath);
@@ -58,6 +60,14 @@ void ShaderProgram::setProjectionMatrix(glm::mat4 projectionMatrix) {
 void ShaderProgram::setWorldMatrix(glm::mat4 worldMatrix) {
     glUseProgram(this->id);
     glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+}
+
+// only texture shaders should call this
+void ShaderProgram::initializeTextures() {
+    glUseProgram(this->id);
+    glActiveTexture(GL_TEXTURE0);
+    GLuint textureLocation = glGetUniformLocation(this->id, "textureSampler");
+    glUniform1i(textureLocation, 0);
 }
 
 const char *readFile(const char *filePath) {

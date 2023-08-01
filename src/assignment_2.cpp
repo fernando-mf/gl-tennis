@@ -13,14 +13,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#define STB_IMAGE_IMPLEMENTATION
-
-#include <stb_image.h>
-
 #include "Cube.h"
 #include "ArmWithRacketFernando.h"
 #include "ShaderProgram.h"
-#include "SphereFernando.h"
+#include "Texture.h"
 
 using namespace glm;
 using namespace std;
@@ -29,55 +25,6 @@ const vec3 COLOR_RED = vec3(1.0f, 0.0f, 0.0f);
 const vec3 COLOR_BLUE = vec3(0.0f, 0.0f, 1.0f);
 const vec3 COLOR_GREEN = vec3(0.0f, 1.0f, 0.0f);
 const vec3 COLOR_GREEN_FLOOR = vec3(0.11f, 0.73f, 0.04f);
-
-GLuint loadTexture(const char *filename) {
-    // create and bind textures
-    GLuint textureId = 0;
-    glGenTextures(1, &textureId);
-    assert(textureId != 0);
-
-    glBindTexture(GL_TEXTURE_2D, textureId);
-
-    // set tex parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    // load Textures with dimension data
-    int width, height, nrChannels;
-    unsigned char *data = stbi_load(filename, &width, &height, &nrChannels, 0);
-    if (!data) {
-        std::cerr << "Error::Texture could not load texture file:" << filename << std::endl;
-        return 0;
-    }
-
-    // upload the texture to the PU
-    GLenum format = 0;
-    switch (nrChannels) {
-        case 1:
-            format = GL_RED;
-            break;
-        case 3:
-            format = GL_RGB;
-            break;
-        case 4:
-            format = GL_RGBA;
-            break;
-        default:
-            format = 0;
-    }
-
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height,
-                 0, format, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    // free resources
-    stbi_image_free(data);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    return textureId;
-}
 
 float randomBetween(float min, float max) {
     return min + rand() / (RAND_MAX / (max - min));
@@ -120,12 +67,12 @@ int main(int argc, char *argv[]) {
     glEnable(GL_DEPTH_TEST);
 
     // load textures
-    GLuint clayTextureId = loadTexture("./assets/textures/clay_ground.png");
-    GLuint tennisBallTextureId = loadTexture("./assets/textures/tennis_ball.png");
+    Texture clayTexture("./assets/textures/clay_ground.png");
 
     // compile and link shaders
     ShaderProgram texturedShaderProgram("./assets/shaders/texture_vertex_shader.glsl",
                                         "./assets/shaders/texture_fragment_shader.glsl");
+    texturedShaderProgram.initializeTextures();
 
     ShaderProgram colorShaderProgram("./assets/shaders/vertex_shader.glsl",
                                      "./assets/shaders/fragment_shader.glsl");
@@ -155,7 +102,7 @@ int main(int argc, char *argv[]) {
     Cube yAxis = Cube(COLOR_GREEN);
     Cube zAxis = Cube(COLOR_BLUE);
     SphereFernando sphereFernando = SphereFernando(COLOR_GREEN);
-    ArmWithRacketFernando armWithRacketFernando = ArmWithRacketFernando(colorShaderProgram.worldMatrixLocation);
+    ArmWithRacketFernando armWithRacketFernando = ArmWithRacketFernando(colorShaderProgram, texturedShaderProgram);
 
     const float worldSize = 100; // grid size
     vec3 modelLocation(2.0f, 1.0f, 2.0f);
@@ -185,10 +132,7 @@ int main(int argc, char *argv[]) {
         texturedShaderProgram.setProjectionMatrix(projectionMatrix);
 
         // set up texture
-        glActiveTexture(GL_TEXTURE0);
-        GLuint textureLocation = glGetUniformLocation(texturedShaderProgram.id, "textureSampler");
-        glBindTexture(GL_TEXTURE_2D, clayTextureId);
-        glUniform1i(textureLocation, 0);                // Set our Texture sampler to user Texture Unit 0
+        clayTexture.use();
 
         mat4 globalWorldMatrix = rotate(mat4(1.0f), glm::radians(worldYAxisRotation), vec3(0.0f, 1.0f, 0.0f)) *
                                  rotate(mat4(1.0f), glm::radians(worldXAxisRotation), vec3(1.0f, 0.0f, 0.0f));
@@ -227,18 +171,7 @@ int main(int argc, char *argv[]) {
         zAxis.draw();
 
         //
-        // Fernando - sphere
-        //
-        glBindTexture(GL_TEXTURE_2D, tennisBallTextureId);
-
-        mat4 sphereWM = translate(mat4(1.0f), vec3(5.0f, 5.0f, 3.0f)) *
-                        scale(mat4(1.0f), vec3(3.0f));
-        sphereWM = globalWorldMatrix * sphereWM;
-        textureShader.setWorldMatrix(sphereWM);
-        sphereFernando.draw(modelRenderingMode);
-
-        //
-        // Fernando - arm with racket
+        // Fernando - arm with racket and tennis ball
         //
         colorShaderProgram.setWorldMatrix(mat4(1.0f));
         armWithRacketFernando.update(globalWorldMatrix *

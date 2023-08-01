@@ -17,6 +17,8 @@ public:
     int projectionMatrixLocation;
     int worldMatrixLocation;
 
+    ShaderProgram();
+
     ShaderProgram(const char *vertexShaderPath, const char *fragmentShaderPath);
 
     void setViewMatrix(mat4 viewMatrix);
@@ -24,6 +26,8 @@ public:
     void setProjectionMatrix(mat4 projectionMatrix);
 
     void setWorldMatrix(mat4 worldMatrix);
+
+    void initializeTextures();
 };
 
 const char *readFile(const char *filePath);
