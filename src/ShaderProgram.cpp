@@ -46,14 +46,17 @@ ShaderProgram::ShaderProgram(const char *vertexShaderPath, const char *fragmentS
 }
 
 void ShaderProgram::setViewMatrix(glm::mat4 viewMatrix) {
+    glUseProgram(this->id);
     glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, &viewMatrix[0][0]);
 }
 
 void ShaderProgram::setProjectionMatrix(glm::mat4 projectionMatrix) {
+    glUseProgram(this->id);
     glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
 }
 
 void ShaderProgram::setWorldMatrix(glm::mat4 worldMatrix) {
+    glUseProgram(this->id);
     glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
 }
 

@@ -13,6 +13,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
+
+#include <stb_image.h>
+
 #include "Cube.h"
 #include "ArmWithRacketFernando.h"
 #include "ShaderProgram.h"
@@ -24,6 +28,55 @@ const vec3 COLOR_RED = vec3(1.0f, 0.0f, 0.0f);
 const vec3 COLOR_BLUE = vec3(0.0f, 0.0f, 1.0f);
 const vec3 COLOR_GREEN = vec3(0.0f, 1.0f, 0.0f);
 const vec3 COLOR_GREEN_FLOOR = vec3(0.11f, 0.73f, 0.04f);
+
+GLuint loadTexture(const char *filename) {
+    // create and bind textures
+    GLuint textureId = 0;
+    glGenTextures(1, &textureId);
+    assert(textureId != 0);
+
+    glBindTexture(GL_TEXTURE_2D, textureId);
+
+    // set tex parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    // load Textures with dimension data
+    int width, height, nrChannels;
+    unsigned char *data = stbi_load(filename, &width, &height, &nrChannels, 0);
+    if (!data) {
+        std::cerr << "Error::Texture could not load texture file:" << filename << std::endl;
+        return 0;
+    }
+
+    // upload the texture to the PU
+    GLenum format = 0;
+    switch (nrChannels) {
+        case 1:
+            format = GL_RED;
+            break;
+        case 3:
+            format = GL_RGB;
+            break;
+        case 4:
+            format = GL_RGBA;
+            break;
+        default:
+            format = 0;
+    }
+
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height,
+                 0, format, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // free resources
+    stbi_image_free(data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    return textureId;
+}
 
 float randomBetween(float min, float max) {
     return min + rand() / (RAND_MAX / (max - min));
@@ -65,12 +118,15 @@ int main(int argc, char *argv[]) {
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 
+    // load textures
+    GLuint clayTextureId = loadTexture("./assets/textures/clay_ground.png");
+
     // compile and link shaders
+    ShaderProgram texturedShaderProgram("./assets/shaders/texture_vertex_shader.glsl",
+                                        "./assets/shaders/texture_fragment_shader.glsl");
+
     ShaderProgram colorShaderProgram("./assets/shaders/vertex_shader.glsl",
                                      "./assets/shaders/fragment_shader.glsl");
-
-//    ShaderProgram texturedShaderProgram("./assets/shaders/texture_fragment_shader.glsl",
-//                                        "./assets/shaders/texture_fragment_shader_textured.glsl");
 
     // set initial view matrix
     // camera parameters for view transform
@@ -84,6 +140,7 @@ int main(int argc, char *argv[]) {
 
     mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraLookAt, cameraUp);
     colorShaderProgram.setViewMatrix(viewMatrix);
+    texturedShaderProgram.setViewMatrix(viewMatrix);
 
     // frame time
     float lastFrameTime = glfwGetTime();
@@ -118,29 +175,25 @@ int main(int argc, char *argv[]) {
         // set up project matrix
         mat4 projectionMatrix = glm::perspective(glm::radians(fov), 800.0f / 600.0f, 0.01f, 100.0f);
         colorShaderProgram.setProjectionMatrix(projectionMatrix);
+        texturedShaderProgram.setProjectionMatrix(projectionMatrix);
+
+        // set up texture
+        glActiveTexture(GL_TEXTURE0);
+        GLuint textureLocation = glGetUniformLocation(texturedShaderProgram.id, "textureSampler");
+        glBindTexture(GL_TEXTURE_2D, clayTextureId);
+        glUniform1i(textureLocation, 0);                // Set our Texture sampler to user Texture Unit 0
 
         mat4 globalWorldMatrix = rotate(mat4(1.0f), glm::radians(worldYAxisRotation), vec3(0.0f, 1.0f, 0.0f)) *
                                  rotate(mat4(1.0f), glm::radians(worldXAxisRotation), vec3(1.0f, 0.0f, 0.0f));
 
         // draw ground
-        for (int i = 0; i < worldSize + 1; i++) {
-            mat4 groundWM = translate(mat4(1.0f), vec3(worldSize / 2 - i, 0.0f, 0.0f)) *
-                            scale(mat4(1.0f), vec3(0.02f, 0.02f, worldSize));
+        mat4 groundWM = translate(mat4(1.0f), vec3(0.0f, 0.0f, 0.0f)) *
+                        scale(mat4(1.0f), vec3(worldSize, 0.02f, worldSize));
 
-            groundWM = globalWorldMatrix * groundWM;
+        groundWM = globalWorldMatrix * groundWM;
 
-            colorShaderProgram.setWorldMatrix(groundWM);
-            ground.draw();
-        }
-        for (int i = 0; i < worldSize + 1; i++) {
-            mat4 groundWM = translate(mat4(1.0f), vec3(0.0f, 0.0f, worldSize / 2 - i)) *
-                            scale(mat4(1.0f), vec3(worldSize, 0.02f, 0.02f));
-
-            groundWM = globalWorldMatrix * groundWM;
-
-            colorShaderProgram.setWorldMatrix(groundWM);
-            ground.draw();
-        }
+        texturedShaderProgram.setWorldMatrix(groundWM);
+        ground.draw();
 
         // draw axes
         const float axisSize = 0.3f;
@@ -332,6 +385,7 @@ int main(int argc, char *argv[]) {
         cameraLookAt = vec3(cosf(phi) * cosf(theta), sinf(phi), -cosf(phi) * sinf(theta));
         viewMatrix = lookAt(cameraPosition, cameraPosition + cameraLookAt, cameraUp);
         colorShaderProgram.setViewMatrix(viewMatrix);
+        texturedShaderProgram.setViewMatrix(viewMatrix);
     }
 
     glfwTerminate();
