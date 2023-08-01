@@ -1,5 +1,5 @@
 //
-// Created by Fernando on 2023-08-01.
+// Created by Fernando Mamani 40169982.
 //
 
 #ifndef ASSIGNMENT_1_SPHEREFERNANDO_H

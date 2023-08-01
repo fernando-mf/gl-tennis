@@ -1,7 +1,3 @@
-//
-// Created by Fernando on 2023-07-31.
-//
-
 #ifndef ASSIGNMENT_1_TEXTUREDCOLORVERTEX_H
 #define ASSIGNMENT_1_TEXTUREDCOLORVERTEX_H
 
