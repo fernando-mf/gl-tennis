@@ -9,10 +9,14 @@ using namespace glm;
 class Cube {
 public:
     GLuint vbo;
+    GLuint vao;
+
     Cube(vec3 color);
+
     Cube();
 
     void draw(GLuint renderingMode);
+
     void draw();
 };
 

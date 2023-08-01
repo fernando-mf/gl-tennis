@@ -20,6 +20,7 @@
 #include "Cube.h"
 #include "ArmWithRacketFernando.h"
 #include "ShaderProgram.h"
+#include "SphereFernando.h"
 
 using namespace glm;
 using namespace std;
@@ -120,6 +121,7 @@ int main(int argc, char *argv[]) {
 
     // load textures
     GLuint clayTextureId = loadTexture("./assets/textures/clay_ground.png");
+    GLuint tennisBallTextureId = loadTexture("./assets/textures/tennis_ball.png");
 
     // compile and link shaders
     ShaderProgram texturedShaderProgram("./assets/shaders/texture_vertex_shader.glsl",
@@ -152,6 +154,7 @@ int main(int argc, char *argv[]) {
     Cube xAxis = Cube(COLOR_RED);
     Cube yAxis = Cube(COLOR_GREEN);
     Cube zAxis = Cube(COLOR_BLUE);
+    SphereFernando sphereFernando = SphereFernando(COLOR_GREEN);
     ArmWithRacketFernando armWithRacketFernando = ArmWithRacketFernando(colorShaderProgram.worldMatrixLocation);
 
     const float worldSize = 100; // grid size
@@ -166,7 +169,11 @@ int main(int argc, char *argv[]) {
     float worldXAxisRotation = 0.0f;
     float worldYAxisRotation = 0.0f;
 
+    bool texturesEnabled = true;
+
     while (!glfwWindowShouldClose(window)) {
+        ShaderProgram textureShader = texturesEnabled ? texturedShaderProgram : colorShaderProgram;
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         float dt = glfwGetTime() - lastFrameTime;
@@ -191,8 +198,7 @@ int main(int argc, char *argv[]) {
                         scale(mat4(1.0f), vec3(worldSize, 0.02f, worldSize));
 
         groundWM = globalWorldMatrix * groundWM;
-
-        texturedShaderProgram.setWorldMatrix(groundWM);
+        textureShader.setWorldMatrix(groundWM);
         ground.draw();
 
         // draw axes
@@ -221,17 +227,27 @@ int main(int argc, char *argv[]) {
         zAxis.draw();
 
         //
+        // Fernando - sphere
+        //
+        glBindTexture(GL_TEXTURE_2D, tennisBallTextureId);
+
+        mat4 sphereWM = translate(mat4(1.0f), vec3(5.0f, 5.0f, 3.0f)) *
+                        scale(mat4(1.0f), vec3(3.0f));
+        sphereWM = globalWorldMatrix * sphereWM;
+        textureShader.setWorldMatrix(sphereWM);
+        sphereFernando.draw(modelRenderingMode);
+
+        //
         // Fernando - arm with racket
         //
+        colorShaderProgram.setWorldMatrix(mat4(1.0f));
         armWithRacketFernando.update(globalWorldMatrix *
-                                     translate(mat4(1.0f), modelLocation) *
-                                     // translation with keys A | D | S | W
+                                     translate(mat4(1.0f), modelLocation) * // translation with keys A | D | S | W
                                      rotate(mat4(1.0f), radians(modelYAxisRotation), vec3(0.0f, 1.0f, 0.0f)) *
                                      // rotation with keys a | d
                                      rotate(mat4(1.0f), radians(modelXAxisRotation), vec3(1.0f, 0.0f, 0.0f)) *
                                      // rotation with keys s | w
-                                     scale(mat4(1.0f),
-                                           modelScale)                                                                       // scaling with keys u | j
+                                     scale(mat4(1.0f), modelScale) // scaling with keys u | j
         );
         armWithRacketFernando.animate(lastFrameTime, dt);
         armWithRacketFernando.draw(modelRenderingMode);
@@ -278,10 +294,19 @@ int main(int argc, char *argv[]) {
             modelRenderingMode = GL_POINTS;
         }
         if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS) {
-            modelRenderingMode = GL_LINES;
+            modelRenderingMode = GL_LINE_STRIP;
         }
         if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS) {
             modelRenderingMode = GL_TRIANGLES;
+        }
+
+        //
+        // handle textures on/off
+        //
+        if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
+            texturesEnabled = false;
+        } else {
+            texturesEnabled = true;
         }
 
         //
