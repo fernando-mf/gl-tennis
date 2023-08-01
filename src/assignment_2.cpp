@@ -13,86 +13,70 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
+
+#include <stb_image.h>
+
 #include "Cube.h"
 #include "ArmWithRacketFernando.h"
+#include "ShaderProgram.h"
 
 using namespace glm;
 using namespace std;
-
-const char *readFile(const char *fileName) {
-    FILE *f = fopen(fileName, "rb");
-    if (f == NULL) {
-        fprintf(stderr, "failed to open file %s\n", fileName);
-        exit(1);
-    }
-    fseek(f, 0, SEEK_END);
-
-    long fileSize = ftell(f);
-    rewind(f);
-
-    char *contents = new char[fileSize + 1];
-    fread(contents, fileSize, 1, f);
-    fclose(f);
-
-    contents[fileSize] = 0; // Add null terminator
-    return contents;
-}
-
-int compileShader(GLenum type, const char *shaderPath) {
-    int shader = glCreateShader(type);
-    const char *shaderSource = readFile(shaderPath);
-    glShaderSource(shader, 1, &shaderSource, NULL);
-    glCompileShader(shader);
-
-    int success;
-    char infoLog[512];
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(shader, 512, NULL, infoLog);
-        fprintf(stderr, "failed to compile shader %s\n%s\n", shaderPath, infoLog);
-    }
-
-    return shader;
-}
-
-
-int compileAndLinkShaders() {
-    int shaders[] = {
-            compileShader(GL_VERTEX_SHADER, "./assets/shaders/vertex_shader.glsl"),
-            compileShader(GL_FRAGMENT_SHADER, "./assets/shaders/fragment_shader.glsl"),
-    };
-
-    int shaderProgram = glCreateProgram();
-
-    // link shaders
-    for (int shader: shaders) {
-        glAttachShader(shaderProgram, shader);
-    }
-
-    // link program
-    glLinkProgram(shaderProgram);
-
-    // check linking status
-    int success;
-    char infoLog[512];
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        fprintf(stderr, "failed to link shader program\n%s\n", infoLog);
-    }
-
-    // delete shaders
-    for (int shader: shaders) {
-        glDeleteShader(shader);
-    }
-
-    return shaderProgram;
-}
 
 const vec3 COLOR_RED = vec3(1.0f, 0.0f, 0.0f);
 const vec3 COLOR_BLUE = vec3(0.0f, 0.0f, 1.0f);
 const vec3 COLOR_GREEN = vec3(0.0f, 1.0f, 0.0f);
 const vec3 COLOR_GREEN_FLOOR = vec3(0.11f, 0.73f, 0.04f);
+
+GLuint loadTexture(const char *filename) {
+    // create and bind textures
+    GLuint textureId = 0;
+    glGenTextures(1, &textureId);
+    assert(textureId != 0);
+
+    glBindTexture(GL_TEXTURE_2D, textureId);
+
+    // set tex parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    // load Textures with dimension data
+    int width, height, nrChannels;
+    unsigned char *data = stbi_load(filename, &width, &height, &nrChannels, 0);
+    if (!data) {
+        std::cerr << "Error::Texture could not load texture file:" << filename << std::endl;
+        return 0;
+    }
+
+    // upload the texture to the PU
+    GLenum format = 0;
+    switch (nrChannels) {
+        case 1:
+            format = GL_RED;
+            break;
+        case 3:
+            format = GL_RGB;
+            break;
+        case 4:
+            format = GL_RGBA;
+            break;
+        default:
+            format = 0;
+    }
+
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height,
+                 0, format, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // free resources
+    stbi_image_free(data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    return textureId;
+}
 
 float randomBetween(float min, float max) {
     return min + rand() / (RAND_MAX / (max - min));
@@ -134,12 +118,15 @@ int main(int argc, char *argv[]) {
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 
-    // compile and link shaders
-    int shaderProgram = compileAndLinkShaders();
-    glUseProgram(shaderProgram);
+    // load textures
+    GLuint clayTextureId = loadTexture("./assets/textures/clay_ground.png");
 
-    // set projection matrix for shader, this won't change
-    GLuint projectionMatrixLocation = glGetUniformLocation(shaderProgram, "projectionMatrix");
+    // compile and link shaders
+    ShaderProgram texturedShaderProgram("./assets/shaders/texture_vertex_shader.glsl",
+                                        "./assets/shaders/texture_fragment_shader.glsl");
+
+    ShaderProgram colorShaderProgram("./assets/shaders/vertex_shader.glsl",
+                                     "./assets/shaders/fragment_shader.glsl");
 
     // set initial view matrix
     // camera parameters for view transform
@@ -152,10 +139,8 @@ int main(int argc, char *argv[]) {
     float cameraVerticalAngle = 0.0f;
 
     mat4 viewMatrix = lookAt(cameraPosition, cameraPosition + cameraLookAt, cameraUp);
-    GLuint viewMatrixLocation = glGetUniformLocation(shaderProgram, "viewMatrix");
-    glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, &viewMatrix[0][0]);
-
-    GLint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
+    colorShaderProgram.setViewMatrix(viewMatrix);
+    texturedShaderProgram.setViewMatrix(viewMatrix);
 
     // frame time
     float lastFrameTime = glfwGetTime();
@@ -167,7 +152,7 @@ int main(int argc, char *argv[]) {
     Cube xAxis = Cube(COLOR_RED);
     Cube yAxis = Cube(COLOR_GREEN);
     Cube zAxis = Cube(COLOR_BLUE);
-    ArmWithRacketFernando armWithRacketFernando = ArmWithRacketFernando(worldMatrixLocation);
+    ArmWithRacketFernando armWithRacketFernando = ArmWithRacketFernando(colorShaderProgram.worldMatrixLocation);
 
     const float worldSize = 100; // grid size
     vec3 modelLocation(2.0f, 1.0f, 2.0f);
@@ -189,30 +174,26 @@ int main(int argc, char *argv[]) {
 
         // set up project matrix
         mat4 projectionMatrix = glm::perspective(glm::radians(fov), 800.0f / 600.0f, 0.01f, 100.0f);
-        glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
+        colorShaderProgram.setProjectionMatrix(projectionMatrix);
+        texturedShaderProgram.setProjectionMatrix(projectionMatrix);
+
+        // set up texture
+        glActiveTexture(GL_TEXTURE0);
+        GLuint textureLocation = glGetUniformLocation(texturedShaderProgram.id, "textureSampler");
+        glBindTexture(GL_TEXTURE_2D, clayTextureId);
+        glUniform1i(textureLocation, 0);                // Set our Texture sampler to user Texture Unit 0
 
         mat4 globalWorldMatrix = rotate(mat4(1.0f), glm::radians(worldYAxisRotation), vec3(0.0f, 1.0f, 0.0f)) *
                                  rotate(mat4(1.0f), glm::radians(worldXAxisRotation), vec3(1.0f, 0.0f, 0.0f));
 
         // draw ground
-        for (int i = 0; i < worldSize + 1; i++) {
-            mat4 groundWM = translate(mat4(1.0f), vec3(worldSize / 2 - i, 0.0f, 0.0f)) *
-                            scale(mat4(1.0f), vec3(0.02f, 0.02f, worldSize));
+        mat4 groundWM = translate(mat4(1.0f), vec3(0.0f, 0.0f, 0.0f)) *
+                        scale(mat4(1.0f), vec3(worldSize, 0.02f, worldSize));
 
-            groundWM = globalWorldMatrix * groundWM;
+        groundWM = globalWorldMatrix * groundWM;
 
-            glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &groundWM[0][0]);
-            ground.draw();
-        }
-        for (int i = 0; i < worldSize + 1; i++) {
-            mat4 groundWM = translate(mat4(1.0f), vec3(0.0f, 0.0f, worldSize / 2 - i)) *
-                            scale(mat4(1.0f), vec3(worldSize, 0.02f, 0.02f));
-
-            groundWM = globalWorldMatrix * groundWM;
-
-            glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &groundWM[0][0]);
-            ground.draw();
-        }
+        texturedShaderProgram.setWorldMatrix(groundWM);
+        ground.draw();
 
         // draw axes
         const float axisSize = 0.3f;
@@ -222,31 +203,35 @@ int main(int argc, char *argv[]) {
         mat4 xAxisWM = translate(mat4(1.0f), vec3(axisLength / 2, axisSize / 2, axisSize / 2)) *
                        scale(mat4(1.0f), vec3(axisLength, axisSize, axisSize));
         xAxisWM = globalWorldMatrix * xAxisWM;
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &xAxisWM[0][0]);
+        colorShaderProgram.setWorldMatrix(xAxisWM);
         xAxis.draw();
 
         // draw y-axis :: green
         mat4 yAxisWM = translate(mat4(1.0f), vec3(axisSize / 2, axisLength / 2, axisSize / 2)) *
                        scale(mat4(1.0f), vec3(axisSize, axisLength, axisSize));
         yAxisWM = globalWorldMatrix * yAxisWM;
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &yAxisWM[0][0]);
+        colorShaderProgram.setWorldMatrix(yAxisWM);
         yAxis.draw();
 
         // draw z-axis :: blue
         mat4 zAxisWM = translate(mat4(1.0f), vec3(axisSize / 2, axisSize / 2, axisLength / 2)) *
                        scale(mat4(1.0f), vec3(axisSize, axisSize, axisLength));
         zAxisWM = globalWorldMatrix * zAxisWM;
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &zAxisWM[0][0]);
+        colorShaderProgram.setWorldMatrix(zAxisWM);
         zAxis.draw();
 
         //
         // Fernando - arm with racket
         //
         armWithRacketFernando.update(globalWorldMatrix *
-                                     translate(mat4(1.0f), modelLocation) *                                                             // translation with keys A | D | S | W
-                                     rotate(mat4(1.0f), radians(modelYAxisRotation), vec3(0.0f, 1.0f, 0.0f)) * // rotation with keys a | d
-                                     rotate(mat4(1.0f), radians(modelXAxisRotation), vec3(1.0f, 0.0f, 0.0f)) * // rotation with keys s | w
-                                     scale(mat4(1.0f),modelScale)                                                                       // scaling with keys u | j
+                                     translate(mat4(1.0f), modelLocation) *
+                                     // translation with keys A | D | S | W
+                                     rotate(mat4(1.0f), radians(modelYAxisRotation), vec3(0.0f, 1.0f, 0.0f)) *
+                                     // rotation with keys a | d
+                                     rotate(mat4(1.0f), radians(modelXAxisRotation), vec3(1.0f, 0.0f, 0.0f)) *
+                                     // rotation with keys s | w
+                                     scale(mat4(1.0f),
+                                           modelScale)                                                                       // scaling with keys u | j
         );
         armWithRacketFernando.animate(lastFrameTime, dt);
         armWithRacketFernando.draw(modelRenderingMode);
@@ -399,7 +384,8 @@ int main(int argc, char *argv[]) {
 
         cameraLookAt = vec3(cosf(phi) * cosf(theta), sinf(phi), -cosf(phi) * sinf(theta));
         viewMatrix = lookAt(cameraPosition, cameraPosition + cameraLookAt, cameraUp);
-        glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, &viewMatrix[0][0]);
+        colorShaderProgram.setViewMatrix(viewMatrix);
+        texturedShaderProgram.setViewMatrix(viewMatrix);
     }
 
     glfwTerminate();
