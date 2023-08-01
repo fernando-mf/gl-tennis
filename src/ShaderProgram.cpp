@@ -1,12 +1,10 @@
-//
-// Created by Fernando on 2023-07-31.
-//
-
 #include <iostream>
 
 #include "ShaderProgram.h"
 
 using namespace std;
+
+ShaderProgram::ShaderProgram() {}
 
 ShaderProgram::ShaderProgram(const char *vertexShaderPath, const char *fragmentShaderPath) {
     GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderPath);
@@ -58,6 +56,14 @@ void ShaderProgram::setProjectionMatrix(glm::mat4 projectionMatrix) {
 void ShaderProgram::setWorldMatrix(glm::mat4 worldMatrix) {
     glUseProgram(this->id);
     glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+}
+
+// only texture shaders should call this
+void ShaderProgram::initializeTextures() {
+    glUseProgram(this->id);
+    glActiveTexture(GL_TEXTURE0);
+    GLuint textureLocation = glGetUniformLocation(this->id, "textureSampler");
+    glUniform1i(textureLocation, 0);
 }
 
 const char *readFile(const char *filePath) {
